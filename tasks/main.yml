@@ -1,0 +1,60 @@
+---
+- name: Install dependencies
+  yum: name={{ item }}
+  with_items:
+    - git
+  become: yes
+
+- stat: path=/usr/local/bin/n
+  register: n_executable
+
+- name: Fetch n
+  become: yes
+  git:
+    repo: https://github.com/tj/n
+    dest: /tmp/n
+    version: "{{ n.version }}"
+  when: not n_executable.stat.exists
+
+- name: Install n
+  command: make install
+  args:
+    chdir: /tmp/n
+    creates: /usr/local/bin/n
+  become: yes
+
+- name: Create N versions folder
+  file:
+    path: '/usr/local/n'
+    state: directory
+    mode: 'u=wrx,g=rx,o=rx'
+    owner: 'root'
+    group: 'root'
+  become: yes
+
+- name: Create symlinks so sudo can use n, npm and node
+  file:
+    src: '/usr/local/bin/{{ item }}'
+    dest: '/usr/bin/{{ item }}'
+    state: link
+    force: yes
+  with_items:
+    - 'node'
+    - 'n'
+    - 'npm'
+  become: yes
+
+- name: Install NodeJS
+  become: yes
+  shell: n which {{ item.version }} || n {{ item.version }}
+  register: install_result
+  changed_when: "'{{ item.version }} is not installed' in '{{ install_result.stdout }}'"
+  with_items: "{{ node }}"
+
+- name: Set default version of NodeJS
+  become: yes
+  shell: node --version | grep {{ item.version }} || n {{ item.version }}
+  when: "{{ item.default | default(False) }}"
+  register: use_result
+  changed_when: "'v{{ item.version }}' == '{{ use_result.stdout }}'"
+  with_items: "{{ node }}"

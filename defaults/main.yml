@@ -1,0 +1,7 @@
+---
+n:
+  version: v2.1.0  # n version tag, or `HEAD`. Defaults to `v2.1.0`.
+
+node:              # Array of Node.js versions to install. Installs `6.3.0` by default.
+  - version: 6.3.0 # Version number to install.
+    default: yes   # Whether to use this version as the default. Defaults to `no`.
